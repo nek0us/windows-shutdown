@@ -59,6 +59,7 @@ Cmfc211223v1shutdownDlg::Cmfc211223v1shutdownDlg(CWnd* pParent /*=nullptr*/)
 void Cmfc211223v1shutdownDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialogEx::DoDataExchange(pDX);
+	DDX_Control(pDX, IDC_COMBO1, m_combo);
 }
 
 BEGIN_MESSAGE_MAP(Cmfc211223v1shutdownDlg, CDialogEx)
@@ -105,6 +106,17 @@ BOOL Cmfc211223v1shutdownDlg::OnInitDialog()
 	SetIcon(m_hIcon, TRUE);			// 设置大图标
 	SetIcon(m_hIcon, FALSE);		// 设置小图标
 	//m_hIcon = AfxGetApp()->LoadIcon(IDI_ICON1);
+
+	//m_combo.AddString(_T("鸡啄米"));
+	// 为组合框控件的列表框添加列表项“百度”
+	//m_combo.AddString(_T("百度"));
+	// 在组合框控件的列表框中索引为1的位置插入列表项“新浪”
+	m_combo.InsertString(0, _T("点时"));
+	m_combo.InsertString(1, _T("分后"));
+	// 默认选择第一项
+	m_combo.SetCurSel(0);
+	// 编辑框中默认显示第一项的文字“鸡啄米”
+	SetDlgItemText(IDC_COMBO1, _T("点时"));
 	
 
 
@@ -181,28 +193,106 @@ void Cmfc211223v1shutdownDlg::OnBnClickedButton1()
 	// TODO: 在此添加控件通知处理程序代码
 	CString cmdup("/c shutdown -s -t ");
 	CEdit* pedit = (CEdit*)GetDlgItem(IDC_EDIT1);
-	CString edit_text;
+	CString edit_text;   //编辑框
+	CString com;
 	int num;
 	pedit->GetWindowText(edit_text);
-	num = _ttoi(edit_text);
-	num = num * 60;
-	edit_text.Format(_T("%d"), num);
-	CString cmd = cmdup + edit_text;
 
+	m_combo.GetWindowTextA(com);  //获取当前设置
 
-	HINSTANCE res = ShellExecute(NULL, "open", "cmd.exe", cmd, NULL, SW_SHOW);
-	if ((DWORD)res <= 32 )
+	if (com == "分后")
 	{
-		CStatic* ptext = (CStatic*)GetDlgItem(IDC_STATIC3);
-		CString sc("当前状态：设定失败");
-		ptext->SetWindowTextA(sc);
+		num = _ttoi(edit_text);
+		num = num * 60;
+		edit_text.Format(_T("%d"), num);
+		CString cmd = cmdup + edit_text;
+
+
+		HINSTANCE res = ShellExecute(NULL, "open", "cmd.exe", cmd, NULL, SW_SHOW);
+		if ((DWORD)res <= 32)
+		{
+			CStatic* ptext = (CStatic*)GetDlgItem(IDC_STATIC3);
+			CString sc("当前状态：设定失败");
+			ptext->SetWindowTextA(sc);
+		}
+		else
+		{
+			CStatic* ptext = (CStatic*)GetDlgItem(IDC_STATIC3);
+			CString sc("当前状态：设定成功");
+			ptext->SetWindowTextA(sc);
+		}
 	}
 	else
 	{
-		CStatic* ptext = (CStatic*)GetDlgItem(IDC_STATIC3);
-		CString sc("当前状态：设定成功");
-		ptext->SetWindowTextA(sc);
+		struct tm t;
+		time_t now;
+		time(&now);
+		localtime_s(&t, &now);
+
+		int index = edit_text.Find('.');
+		if (index == -1)
+		{
+			num = _ttoi(edit_text);
+			int x_min = num * 60 - t.tm_hour * 60 - t.tm_min;
+			int s_s = x_min * 60;
+
+			edit_text.Format(_T("%d"), s_s);
+			CString cmd = cmdup + edit_text;
+
+
+			HINSTANCE res = ShellExecute(NULL, "open", "cmd.exe", cmd, NULL, SW_SHOW);
+			if ((DWORD)res <= 32)
+			{
+				CStatic* ptext = (CStatic*)GetDlgItem(IDC_STATIC3);
+				CString sc("当前状态：设定失败");
+				ptext->SetWindowTextA(sc);
+			}
+			else
+			{
+				CStatic* ptext = (CStatic*)GetDlgItem(IDC_STATIC3);
+				CString sc("当前状态：设定成功");
+				ptext->SetWindowTextA(sc);
+			}
+		}
+		else if (index > -1)
+		{
+			CString left_text = edit_text.Left(index);
+			CString right_text = edit_text.Mid(index + 1);
+			int num_hour = _ttoi(left_text);
+			int num_min = _ttoi(right_text);
+			int x_min = num_hour * 60 + num_min - t.tm_hour * 60 - t.tm_min;
+			int s_s = x_min * 60;
+			if (s_s < 0)
+			{
+				CStatic* ptext = (CStatic*)GetDlgItem(IDC_STATIC3);
+				CString sc("这个时间已经过去");
+				ptext->SetWindowTextA(sc);
+			}
+			else
+			{
+				edit_text.Format(_T("%d"), s_s);
+				CString cmd = cmdup + edit_text;
+
+
+				HINSTANCE res = ShellExecute(NULL, "open", "cmd.exe", cmd, NULL, SW_SHOW);
+				if ((DWORD)res <= 32)
+				{
+					CStatic* ptext = (CStatic*)GetDlgItem(IDC_STATIC3);
+					CString sc("当前状态：设定失败");
+					ptext->SetWindowTextA(sc);
+				}
+				else
+				{
+					CStatic* ptext = (CStatic*)GetDlgItem(IDC_STATIC3);
+					CString sc("当前状态：设定成功");
+					ptext->SetWindowTextA(sc);
+				}
+			}
+		}
+
 	}
+
+	
 	
 	//MessageBox(cmd, _T("程序"));
 
